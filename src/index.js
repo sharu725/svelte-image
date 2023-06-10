@@ -1,3 +1,3 @@
-const {getPreprocessor} = require('./main')
+const { getPreprocessor } = require('./main');
 
-module.exports = getPreprocessor
+module.exports = getPreprocessor;

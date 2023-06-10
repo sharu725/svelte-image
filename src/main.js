@@ -1,10 +1,10 @@
-const svelte = require("svelte/compiler");
-const sharp = require("sharp");
-const path = require("path");
-const util = require("util");
-const fs = require("fs");
-const crypto = require("crypto");
-const axios = require("axios");
+const svelte = require('svelte/compiler');
+const sharp = require('sharp');
+const path = require('path');
+const util = require('util');
+const fs = require('fs');
+const crypto = require('crypto');
+const axios = require('axios');
 const blurhash = require('blurhash');
 
 const defaults = {
@@ -14,7 +14,7 @@ const defaults = {
   // processed by the <img> tag (assuming `optimizeAll` above is true). Empty
   // the array to allow all extensions to be processed. However, only jpegs and
   // pngs are explicitly supported.
-  imgTagExtensions: ["jpg", "jpeg", "png"],
+  imgTagExtensions: ['jpg', 'jpeg', 'png'],
 
   // Same as the above, except that this array applies to the Image Component.
   // If the images passed to your image component are unknown, it might be a
@@ -27,19 +27,19 @@ const defaults = {
 
   quality: 70, // jpeg/webp quality level
 
-  tagName: "Image", // default component name
+  tagName: 'Image', // default component name
 
   sizes: [400, 800, 1200], // array of sizes for srcset in pixels
 
   // array of screen size breakpoints at which sizes above will be applied
   breakpoints: [375, 768, 1024],
 
-  outputDir: "g/",
+  outputDir: 'g/',
 
-  publicDir: "./static/",
+  publicDir: './static/',
 
-  placeholder: "trace", // or "blur", or "blurhash",
-  
+  placeholder: 'trace', // or "blur", or "blurhash",
+
   placeholderSize: 64,
 
   // WebP options [sharp docs](https://sharp.pixelplumbing.com/en/stable/api-output/#webp)
@@ -53,8 +53,8 @@ const defaults = {
 
   // Potrace options for SVG placeholder
   trace: {
-    background: "#fff",
-    color: "#002fa7",
+    background: '#fff',
+    color: '#002fa7',
     threshold: 120,
   },
 
@@ -83,20 +83,20 @@ const defaults = {
 
   // Only files with these extensions will ever be processed when invoking
   // `processFolders` above.
-  processFoldersExtensions: ["jpeg", "jpg", "png"],
+  processFoldersExtensions: ['jpeg', 'jpg', 'png'],
 
   // Add image sizes to this array to create different asset sizes for any image
   // that is processed using `processFolders`
-  processFoldersSizes: false
+  processFoldersSizes: false,
 };
 
 /**
  * @type {typeof defaults}
  */
-let options = JSON.parse(JSON.stringify(defaults))
+let options = JSON.parse(JSON.stringify(defaults));
 
-async function downloadImage(url, folder = ".") {
-  const hash = crypto.createHash("sha1").update(url).digest("hex");
+async function downloadImage(url, folder = '.') {
+  const hash = crypto.createHash('sha1').update(url).digest('hex');
   const existing = fs.readdirSync(folder).find((e) => e.startsWith(hash));
   if (existing) {
     return existing;
@@ -104,8 +104,8 @@ async function downloadImage(url, folder = ".") {
 
   const { headers } = await axios.head(url);
 
-  const [type, ext] = headers["content-type"].split("/");
-  if (type !== "image") return null;
+  const [type, ext] = headers['content-type'].split('/');
+  if (type !== 'image') return null;
 
   const filename = `${hash}.${ext}`;
   const saveTo = path.resolve(folder, filename);
@@ -115,21 +115,21 @@ async function downloadImage(url, folder = ".") {
   const writer = fs.createWriteStream(saveTo);
   const response = await axios({
     url,
-    method: "GET",
-    responseType: "stream",
+    method: 'GET',
+    responseType: 'stream',
   });
   response.data.pipe(writer);
 
   return new Promise((resolve, reject) => {
-    writer.on("finish", () => resolve(filename));
-    writer.on("error", reject);
+    writer.on('finish', () => resolve(filename));
+    writer.on('error', reject);
   });
 }
 
 function getPathsObject(nodeSrc) {
   const inPath = path.resolve(options.publicDir, nodeSrc);
   const outDir = path.dirname(
-    path.resolve(options.publicDir, options.outputDir, nodeSrc)
+    path.resolve(options.publicDir, options.outputDir, nodeSrc),
   );
   const filename = path.basename(inPath);
   const outUrl = path.relative(options.publicDir, path.join(outDir, filename));
@@ -159,7 +159,7 @@ async function getBase64(pathname, inlined = false) {
 
   const s = await sharp(pathname).resize(size).toBuffer();
 
-  return "data:image/png;base64," + s.toString("base64");
+  return 'data:image/png;base64,' + s.toString('base64');
 }
 
 const optimizeSVG = (svg) => {
@@ -167,14 +167,14 @@ const optimizeSVG = (svg) => {
   const res = new svgo({
     multipass: true,
     floatPrecision: 0,
-    datauri: "base64",
+    datauri: 'base64',
   });
 
   return res.optimize(svg).then(({ data }) => data);
 };
 
 async function getTrace(pathname) {
-  const potrace = require("potrace");
+  const potrace = require('potrace');
   const trace = util.promisify(potrace.trace);
 
   const s = await sharp(pathname)
@@ -193,9 +193,9 @@ function getProp(node, attr) {
 
 function getSrc(node) {
   try {
-    return getProp(node, "src") || [{}];
+    return getProp(node, 'src') || [{}];
   } catch (err) {
-    console.log("Was unable to retrieve image src", err);
+    console.log('Was unable to retrieve image src', err);
     return [{}];
   }
 }
@@ -218,7 +218,7 @@ function fileHasCorrectExtension(filename, extensions) {
     ? true
     : extensions
         .map((x) => x.toLowerCase())
-        .includes(filename.split(".").pop().toLowerCase());
+        .includes(filename.split('.').pop().toLowerCase());
 }
 
 function willNotProcess(reason) {
@@ -241,20 +241,20 @@ async function getProcessingPathsForNode(node) {
   const [value] = getSrc(node);
 
   // dynamic or empty value
-  if (value.type === "MustacheTag" || value.type === "AttributeShorthand") {
+  if (value.type === 'MustacheTag' || value.type === 'AttributeShorthand') {
     return willNotProcess(`Cannot process a dynamic value: ${value.type}`);
   }
   if (!value.data) {
-    return willNotProcess("The `src` is blank");
+    return willNotProcess('The `src` is blank');
   }
   if (
-    node.name === "img" &&
+    node.name === 'img' &&
     !fileHasCorrectExtension(value.data, options.imgTagExtensions)
   ) {
     return willNotProcess(
       `The <img> tag was passed a file (${
         value.data
-      }) whose extension is not one of ${options.imgTagExtensions.join(", ")}`
+      }) whose extension is not one of ${options.imgTagExtensions.join(', ')}`,
     );
   }
   if (
@@ -265,8 +265,8 @@ async function getProcessingPathsForNode(node) {
       `The ${options.tagName} component was passed a file (${
         value.data
       }) whose extension is not one of ${options.componentExtensions.join(
-        ", "
-      )}`
+        ', ',
+      )}`,
     );
   }
 
@@ -281,7 +281,7 @@ async function getProcessingPathsForNode(node) {
     } else {
       removedDomainSlash = await downloadImage(
         value.data,
-        options.publicDir
+        options.publicDir,
       ).catch((e) => {
         console.error(e.toString());
 
@@ -293,7 +293,7 @@ async function getProcessingPathsForNode(node) {
       }
     }
   } else {
-    removedDomainSlash = value.data.replace(/^\/([^\/])/, "$1");
+    removedDomainSlash = value.data.replace(/^\/([^\/])/, '$1');
   }
 
   const fullPath = path.resolve(options.publicDir, removedDomainSlash);
@@ -386,7 +386,7 @@ async function resize(size, paths, meta = null) {
 
 // Pass a string, then it will call itself with an array
 function mkdirp(dir) {
-  if (typeof dir === "string") {
+  if (typeof dir === 'string') {
     if (fs.existsSync(dir)) {
       return dir;
     }
@@ -399,21 +399,21 @@ function mkdirp(dir) {
       fs.mkdirSync(newDir);
     }
     return newDir;
-  }, "");
+  }, '');
 }
 
-const pathSepPattern = new RegExp("\\" + path.sep, "g");
+const pathSepPattern = new RegExp('\\' + path.sep, 'g');
 
 const srcsetLine = (options) => (s, i) =>
-  `${s.filename.replace(pathSepPattern, "/")} ${options.breakpoints[i]}w`;
+  `${s.filename.replace(pathSepPattern, '/')} ${options.breakpoints[i]}w`;
 
 const srcsetLineWebp = (options) => (s, i) =>
-  `${s.filename.replace(pathSepPattern, "/")} ${options.breakpoints[i]}w`
-    .replace("jpg", "webp")
-    .replace("png", "webp")
-    .replace("jpeg", "webp");
+  `${s.filename.replace(pathSepPattern, '/')} ${options.breakpoints[i]}w`
+    .replace('jpg', 'webp')
+    .replace('png', 'webp')
+    .replace('jpeg', 'webp');
 
-function getSrcset(sizes, lineFn = srcsetLine, tag = "srcset") {
+function getSrcset(sizes, lineFn = srcsetLine, tag = 'srcset') {
   const s = Array.isArray(sizes) ? sizes : [sizes];
   const srcSetValue = s
     .filter((f) => f)
@@ -430,13 +430,17 @@ async function getImageData(pathname) {
   const height = Math.floor(meta.height * (width / meta.width));
 
   return new Promise((resolve, reject) => {
-    img.raw().ensureAlpha().resize(width, height).toBuffer((err, buffer, { width, height }) => {
-      if (err) {
-        return reject(err);
-      }
+    img
+      .raw()
+      .ensureAlpha()
+      .resize(width, height)
+      .toBuffer((err, buffer, { width, height }) => {
+        if (err) {
+          return reject(err);
+        }
 
-      return resolve({ data: new Uint8ClampedArray(buffer), width, height });
-    });
+        return resolve({ data: new Uint8ClampedArray(buffer), width, height });
+      });
   });
 }
 
@@ -444,7 +448,7 @@ async function replaceInComponent(edited, node) {
   const { content, offset } = await edited;
 
   const { paths, willNotProcess, reason } = await getProcessingPathsForNode(
-    node
+    node,
   );
 
   if (willNotProcess) {
@@ -458,7 +462,7 @@ async function replaceInComponent(edited, node) {
   let replaced;
 
   const base64 =
-    options.placeholder === "blur" || options.placeholder === "blurhash"
+    options.placeholder === 'blur' || options.placeholder === 'blurhash'
       ? await getBase64(paths.inPath)
       : await getTrace(paths.inPath);
 
@@ -469,7 +473,7 @@ async function replaceInComponent(edited, node) {
     getSrcset(sizes),
     end + 1,
     end + 2,
-    replaced.offset
+    replaced.offset,
   );
 
   replaced = insert(
@@ -477,31 +481,37 @@ async function replaceInComponent(edited, node) {
     ` ratio=\'${(1 / (sizes[0].width / sizes[0].height)) * 100}%\' `,
     end + 1,
     end + 2,
-    replaced.offset
+    replaced.offset,
   );
 
-  if (options.placeholder === "blurhash") {
+  if (options.placeholder === 'blurhash') {
     const imgdata = await getImageData(paths.inPath);
-    const hash = blurhash.encode(imgdata.data, imgdata.width, imgdata.height, 4, 3);
+    const hash = blurhash.encode(
+      imgdata.data,
+      imgdata.width,
+      imgdata.height,
+      4,
+      3,
+    );
 
     replaced = insert(
       replaced.content,
       ` blurhash=\'{\`${hash}\`}\' blurhashSize=\'{{width: ${imgdata.width}, height: ${imgdata.height}}}\' `,
       end + 1,
       end + 2,
-      replaced.offset
+      replaced.offset,
     );
   }
 
   if (options.webp) {
     replaced = insert(
       replaced.content,
-      getSrcset(sizes, srcsetLineWebp, "srcsetWebp"),
+      getSrcset(sizes, srcsetLineWebp, 'srcsetWebp'),
       end + 1,
       end + 2,
-      replaced.offset
+      replaced.offset,
     );
-  };
+  }
 
   return replaced;
 }
@@ -548,21 +558,22 @@ async function replaceImages(content) {
   let ast;
   const imageNodes = [];
 
-  if (!content.includes("<img") && !content.includes(`<${options.tagName}`)) return content;
+  if (!content.includes('<img') && !content.includes(`<${options.tagName}`))
+    return content;
 
   try {
     ast = svelte.parse(content);
   } catch (e) {
-    console.error(e, "Error parsing component content");
+    console.error(e, 'Error parsing component content');
   }
 
   svelte.walk(ast, {
     enter: (node) => {
-      if (!["Element", "Fragment", "InlineComponent"].includes(node.type)) {
+      if (!['Element', 'Fragment', 'InlineComponent'].includes(node.type)) {
         return;
       }
 
-      if (options.optimizeAll && node.name === "img") {
+      if (options.optimizeAll && node.name === 'img') {
         imageNodes.push(node);
         return;
       }
@@ -579,7 +590,7 @@ async function replaceImages(content) {
     offset: 0,
   };
   const processed = await imageNodes.reduce(async (edited, node) => {
-    if (node.name === "img") {
+    if (node.name === 'img') {
       return replaceInImg(edited, node);
     }
     return replaceInComponent(edited, node);
@@ -606,26 +617,26 @@ async function processImage(pathFromStatic) {
 function processFolder(folder) {
   // get images
   const files = fs.readdirSync(path.resolve(options.publicDir, folder));
-  const images = files.filter(file =>
-    options.processFoldersExtensions.includes(path.extname(file).substr(1))
+  const images = files.filter((file) =>
+    options.processFoldersExtensions.includes(path.extname(file).substr(1)),
   );
 
   // process
   const processingImages = images
-    .map(filename => path.join(folder, filename))
+    .map((filename) => path.join(folder, filename))
     .map(processImage);
 
   // get folders and optionally recurse
   let processingFolders = [];
 
   if (options.processFoldersRecursively) {
-    const folders = files.filter(fileOrFolder =>
+    const folders = files.filter((fileOrFolder) =>
       fs
         .lstatSync(path.resolve(options.publicDir, folder, fileOrFolder))
-        .isDirectory()
+        .isDirectory(),
     );
-    processingFolders = folders.map(nestedFolder =>
-      processFolder(path.join(folder, nestedFolder))
+    processingFolders = folders.map((nestedFolder) =>
+      processFolder(path.join(folder, nestedFolder)),
     );
   }
 
@@ -635,12 +646,11 @@ function processFolder(folder) {
 function processFolders() {
   if (options.processFolders.length === 0) return;
 
-  const inlineBelow = options.inlineBelow
-  options.inlineBelow = 0
+  const inlineBelow = options.inlineBelow;
+  options.inlineBelow = 0;
 
   const jobs = options.processFolders.map(processFolder);
-  return Promise.all(jobs)
-    .finally(() => (options.inlineBelow = inlineBelow));
+  return Promise.all(jobs).finally(() => (options.inlineBelow = inlineBelow));
 }
 
 let processFoldersRunIds = [];
@@ -650,7 +660,7 @@ let processFoldersRunIds = [];
 function getPreprocessor(opts = {}) {
   options = {
     ...JSON.parse(JSON.stringify(defaults)),
-    ...opts
+    ...opts,
   };
 
   async function processFoldersOnce() {
@@ -658,15 +668,15 @@ function getPreprocessor(opts = {}) {
       processFolders: foldersToProcess,
       processFoldersExtensions,
       processFoldersRecursively,
-      processFoldersSizes
-    } = options
+      processFoldersSizes,
+    } = options;
     const runId = JSON.stringify({
       processFolders: foldersToProcess,
       processFoldersExtensions,
       processFoldersRecursively,
-      processFoldersSizes
-    })
-    
+      processFoldersSizes,
+    });
+
     if (processFoldersRunIds.includes(runId)) return;
     processFoldersRunIds.push(runId);
 
@@ -677,9 +687,9 @@ function getPreprocessor(opts = {}) {
     markup: async ({ content }) => {
       await processFoldersOnce();
       return {
-        code: await replaceImages(content)
+        code: await replaceImages(content),
       };
-    }
+    },
   };
 }
 
