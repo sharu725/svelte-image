@@ -4,8 +4,8 @@
 
   export let c = ''; // deprecated
   export let alt = '';
-  export let width = null;
-  export let height = null;
+  export let width: number | undefined;
+  export let height: number | undefined;
   export let usemap = '';
   export let src = '';
   export let srcset = '';
