@@ -1,4 +1,5 @@
 const svelte = require('svelte/compiler');
+const es_walker = require('estree-walker');
 const sharp = require('sharp');
 const path = require('path');
 const util = require('util');
@@ -567,7 +568,7 @@ async function replaceImages(content) {
     console.error(e, 'Error parsing component content');
   }
 
-  svelte.walk(ast, {
+  es_walker.walk(ast, {
     enter: (node) => {
       if (!['Element', 'Fragment', 'InlineComponent'].includes(node.type)) {
         return;
